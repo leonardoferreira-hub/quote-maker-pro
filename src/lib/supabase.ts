@@ -1,9 +1,10 @@
 const SUPABASE_URL = 'https://gthtvpujwukbfgokghne.supabase.co/functions/v1';
-const SUPABASE_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0aHR2cHVqd3VrYmZnb2tnaG5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU4MjYsImV4cCI6MjA4MzI4MTgyNn0.viQaLgE8Kk32DCtEAUEglxCR8bwBwhrIqAh_JIfdxv4';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0aHR2cHVqd3VrYmZnb2tnaG5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDU4MjYsImV4cCI6MjA4MzI4MTgyNn0.viQaLgE8Kk32DCtEAUEglxCR8bwBwhrIqAh_JIfdxv4';
 
 const headers = {
-  'Authorization': `Bearer ${SUPABASE_TOKEN}`,
-  'Content-Type': 'application/json'
+  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+  'Content-Type': 'application/json',
+  'apikey': SUPABASE_ANON_KEY,
 };
 
 export interface Emissao {
