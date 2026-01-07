@@ -102,9 +102,12 @@ export default function Calculator() {
         observacao: basicData.observacao || undefined,
       };
 
-      const result = await criarEmissao(emissaoPayload);
+      console.log('🧾 [Calculator] payload criarEmissao:', emissaoPayload);
 
-      if (result.error) {
+      const result = await criarEmissao(emissaoPayload);
+      console.log('🧾 [Calculator] resposta criarEmissao:', result);
+
+      if (result?.error) {
         throw new Error(result.error);
       }
 
@@ -115,8 +118,14 @@ export default function Calculator() {
         ...costsData.mensal.map((c) => ({ tipo: `Mensal - ${c.prestador}`, valor: c.valorBruto, descricao: `Gross Up: ${c.grossUp}%` })),
       ].filter((c) => c.valor > 0);
 
-      if (allCosts.length > 0 && result.data?.id) {
-        await salvarCustos(result.data.id, allCosts);
+      console.log('🧾 [Calculator] custos para salvar:', { count: allCosts.length, allCosts });
+
+      if (allCosts.length > 0 && result?.data?.id) {
+        const salvarResult = await salvarCustos(result.data.id, allCosts);
+        console.log('🧾 [Calculator] resposta salvarCustos:', salvarResult);
+        if (salvarResult?.error) {
+          throw new Error(salvarResult.error);
+        }
       }
 
       toast({
@@ -126,6 +135,7 @@ export default function Calculator() {
 
       navigate('/');
     } catch (error) {
+      console.error('💥 [Calculator] erro ao salvar:', error);
       toast({
         title: 'Erro ao salvar',
         description: error instanceof Error ? error.message : 'Tente novamente.',

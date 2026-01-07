@@ -45,15 +45,37 @@ export async function detalhesEmissao(id: string) {
 
 // FLUXO 1
 export async function criarEmissao(data: Partial<Emissao>) {
-  const response = await fetch(
-    `${SUPABASE_URL}/fluxo-1-criar-emissao`,
-    {
+  const url = `${SUPABASE_URL}/fluxo-1-criar-emissao`;
+  console.log('🌐 [criarEmissao] POST', url, data);
+
+  try {
+    const response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+    });
+
+    const text = await response.text();
+    console.log('📩 [criarEmissao] status:', response.status, 'body:', text);
+
+    // pode ser texto não-JSON em erro
+    try {
+      return JSON.parse(text);
+    } catch {
+      return {
+        success: false,
+        error: `Resposta não-JSON (${response.status}): ${text}`,
+      };
     }
-  );
-  return response.json();
+  } catch (err) {
+    // "Failed to fetch" costuma ser CORS / função não deployada / falha de rede
+    console.error('💥 [criarEmissao] fetch falhou:', err);
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      success: false,
+      error: `Falha de rede ao chamar ${url}: ${msg}`,
+    };
+  }
 }
 
 export async function atualizarEmissao(id: string, data: Partial<Emissao>) {
@@ -69,15 +91,35 @@ export async function atualizarEmissao(id: string, data: Partial<Emissao>) {
 }
 
 export async function salvarCustos(id_emissao: string, custos: Custo[]) {
-  const response = await fetch(
-    `${SUPABASE_URL}/fluxo-1-salvar-custos`,
-    {
+  const url = `${SUPABASE_URL}/fluxo-1-salvar-custos`;
+  console.log('🌐 [salvarCustos] POST', url, { id_emissao, custosCount: custos.length });
+
+  try {
+    const response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ id_emissao, custos })
+      body: JSON.stringify({ id_emissao, custos }),
+    });
+
+    const text = await response.text();
+    console.log('📩 [salvarCustos] status:', response.status, 'body:', text);
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      return {
+        success: false,
+        error: `Resposta não-JSON (${response.status}): ${text}`,
+      };
     }
-  );
-  return response.json();
+  } catch (err) {
+    console.error('💥 [salvarCustos] fetch falhou:', err);
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      success: false,
+      error: `Falha de rede ao chamar ${url}: ${msg}`,
+    };
+  }
 }
 
 // FLUXO 2
