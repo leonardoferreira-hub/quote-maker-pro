@@ -107,30 +107,54 @@ export class CustosVariaveisCalculador {
     custos: Custo[], 
     volume: number, 
     series: SerieEmissao[],
-    custodiaDebenture: CustodiaDebenture[]
+    custodiaDebenture: CustodiaDebenture[],
+    periodicidade?: 'upfront' | 'anual' | 'mensal'
   ): Custo[] {
+    console.log(`📊 Calculando custos (${periodicidade || 'todos'}):`, { custos, volume, series });
+    
     return custos.map(custo => {
       let valorCalculado = 0;
 
+      // Custos percentuais: calcular baseado no volume
       if (custo.tipo_preco === 'Percentual' && custo.formula_descricao) {
         valorCalculado = this.calcularPercentual(volume, custo.formula_descricao);
-        console.log(`Custo Percentual ${custo.papel}: ${valorCalculado}`);
-      } else if (custo.tipo_preco === 'Variável') {
-        // Custódia de debênture ou similar
+        console.log(`💹 Percentual ${custo.papel}: fórmula="${custo.formula_descricao}" → ${valorCalculado}`);
+      } 
+      // Custos variáveis: calcular baseado nas séries (custódia)
+      else if (custo.tipo_preco === 'Variável') {
         const papelLower = custo.papel.toLowerCase();
         if (papelLower.includes('custódia') || 
             papelLower.includes('custodia') ||
             papelLower.includes('depositária') ||
             papelLower.includes('depositaria')) {
           valorCalculado = this.calcularCustodiaDebenture(series, custodiaDebenture);
-          console.log(`Custo Variável ${custo.papel}: ${valorCalculado}`);
+          console.log(`📦 Variável ${custo.papel}: ${valorCalculado}`);
+        } else if (custo.formula_descricao) {
+          // Outros custos variáveis com fórmula
+          valorCalculado = this.calcularPercentual(volume, custo.formula_descricao);
+          console.log(`📊 Variável c/ fórmula ${custo.papel}: ${valorCalculado}`);
         }
-      } else if (custo.tipo_preco === 'Fixo') {
-        valorCalculado = custo.preco_upfront || custo.preco_anual || custo.preco_mensal || 0;
+      } 
+      // Custos fixos: usar o valor da periodicidade correta
+      else if (custo.tipo_preco === 'Fixo') {
+        // Priorizar o valor da periodicidade específica
+        if (periodicidade === 'upfront' || custo.periodicidade === 'upfront') {
+          valorCalculado = custo.preco_upfront || 0;
+        } else if (periodicidade === 'anual' || custo.periodicidade === 'anual') {
+          valorCalculado = custo.preco_anual || 0;
+        } else if (periodicidade === 'mensal' || custo.periodicidade === 'mensal') {
+          valorCalculado = custo.preco_mensal || 0;
+        } else {
+          // Fallback: usar qualquer valor disponível
+          valorCalculado = custo.preco_upfront || custo.preco_anual || custo.preco_mensal || 0;
+        }
+        console.log(`💵 Fixo ${custo.papel}: ${valorCalculado}`);
       }
 
-      const grossUpDecimal = this.converterGrossUp(custo.gross_up);
+      const grossUpDecimal = this.converterGrossUp(custo.gross_up || 0);
       const valorBruto = this.aplicarGrossUp(valorCalculado, grossUpDecimal);
+
+      console.log(`✅ ${custo.papel}: calculado=${valorCalculado}, grossUp=${grossUpDecimal}, bruto=${valorBruto}`);
 
       return {
         ...custo,

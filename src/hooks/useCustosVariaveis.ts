@@ -42,21 +42,24 @@ export function useCustosVariaveis() {
         response.data?.upfront || [], 
         params.volume, 
         params.series,
-        response.custodia_debenture || []
+        response.custodia_debenture || [],
+        'upfront'
       );
       
       const anual = CustosVariaveisCalculador.calcularCustosVariaveis(
         response.data?.anual || [], 
         params.volume, 
         params.series,
-        response.custodia_debenture || []
+        response.custodia_debenture || [],
+        'anual'
       );
       
       const mensal = CustosVariaveisCalculador.calcularCustosVariaveis(
         response.data?.mensal || [], 
         params.volume, 
         params.series,
-        response.custodia_debenture || []
+        response.custodia_debenture || [],
+        'mensal'
       );
 
       setCustosUpfront(upfront);
