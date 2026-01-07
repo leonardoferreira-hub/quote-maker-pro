@@ -151,10 +151,8 @@ export function Step1BasicData({ data, onChange }: Step1Props) {
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="spe">SPE</SelectItem>
-                <SelectItem value="fundo">Fundo</SelectItem>
-                <SelectItem value="securitizadora">Securitizadora</SelectItem>
-                <SelectItem value="companhia">Companhia Emissora</SelectItem>
+                <SelectItem value="veiculo_exclusivo">Veículo Exclusivo</SelectItem>
+                <SelectItem value="patrimonio_separado">Patrimônio Separado</SelectItem>
               </SelectContent>
             </Select>
           </div>
