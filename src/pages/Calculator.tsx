@@ -20,38 +20,29 @@ export default function Calculator() {
   const [isLoading, setIsLoading] = useState(false);
 
   const [basicData, setBasicData] = useState<EmissaoData>({
-    nome_operacao: '',
     demandante_proposta: '',
     empresa_destinataria: '',
     categoria: '',
-    tipo_oferta: '',
+    oferta: '',
     veiculo: '',
     quantidade_series: '1',
-    series: [{ numero: 1, volume: 0 }],
-    observacao: '',
+    series: [{ numero: 1, valor_emissao: 0 }],
   });
 
   const [costsData, setCostsData] = useState<CostsData>(defaultCostsData);
 
   const validateStep1 = (): string[] => {
     const errors: string[] = [];
-    if (!basicData.nome_operacao.trim()) errors.push('Nome da Operação');
     if (!basicData.demandante_proposta.trim()) errors.push('Demandante da Proposta');
     if (!basicData.empresa_destinataria.trim()) errors.push('Empresa Destinatária');
     if (!basicData.categoria) errors.push('Categoria');
-    if (!basicData.tipo_oferta) errors.push('Tipo de Oferta');
+    if (!basicData.oferta) errors.push('Tipo de Oferta');
     if (!basicData.veiculo) errors.push('Veículo');
     
-    const volumeTotal = basicData.series.reduce((sum, s) => sum + (s.volume || 0), 0);
-    if (volumeTotal <= 0) errors.push('Volume das Séries (deve ser maior que zero)');
+    const volumeTotal = basicData.series.reduce((sum, s) => sum + (s.valor_emissao || 0), 0);
+    if (volumeTotal <= 0) errors.push('Valor das Séries (deve ser maior que zero)');
     
     return errors;
-  };
-
-  const generateNumeroEmissao = (): string => {
-    const year = new Date().getFullYear();
-    const random = Math.floor(1000 + Math.random() * 9000);
-    return `EMIT-${year}-${random}`;
   };
 
   const handleNext = () => {
@@ -79,7 +70,7 @@ export default function Calculator() {
     }
   };
 
-  const volumeTotal = basicData.series.reduce((sum, s) => sum + (s.volume || 0), 0);
+  const volumeTotal = basicData.series.reduce((sum, s) => sum + (s.valor_emissao || 0), 0);
 
   const handleSave = async () => {
     setIsLoading(true);
@@ -89,17 +80,18 @@ export default function Calculator() {
         ? (basicData.categoria as 'DEB' | 'CRA' | 'CRI' | 'NC' | 'CR')
         : 'DEB';
 
-      // Create emission with auto-generated numero_emissao
+      // Build payload with correct fields
       const emissaoPayload = {
-        numero_emissao: generateNumeroEmissao(),
         demandante_proposta: basicData.demandante_proposta,
-        empresa_destinataria: basicData.empresa_destinataria || undefined,
+        empresa_destinataria: basicData.empresa_destinataria,
         categoria,
-        volume: volumeTotal,
-        quantidade_series: Number(basicData.quantidade_series) || 1,
-        valor_mobiliario: volumeTotal || undefined,
-        status_proposta: 'rascunho',
-        observacao: basicData.observacao || undefined,
+        oferta: basicData.oferta,
+        veiculo: basicData.veiculo,
+        quantidade_series: basicData.series.length,
+        series: basicData.series.map(s => ({
+          numero: s.numero,
+          valor_emissao: s.valor_emissao
+        }))
       };
 
       console.log('🧾 [Calculator] payload criarEmissao:', emissaoPayload);
@@ -130,7 +122,7 @@ export default function Calculator() {
 
       toast({
         title: 'Cotação salva!',
-        description: `Emissão ${basicData.nome_operacao} criada com sucesso.`,
+        description: `Emissão criada com sucesso.`,
       });
 
       navigate('/');

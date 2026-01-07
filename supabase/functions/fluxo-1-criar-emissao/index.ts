@@ -29,14 +29,17 @@ serve(async (req) => {
     );
 
     const body = await req.json();
+    console.log("[fluxo-1-criar-emissao] Body recebido:", JSON.stringify(body));
 
-    // Validar campos obrigatórios
+    // Validate required fields
     const camposObrigatorios = [
       "demandante_proposta",
       "empresa_destinataria",
       "categoria",
-      "volume",
+      "oferta",
+      "veiculo",
       "quantidade_series",
+      "series",
     ];
 
     for (const campo of camposObrigatorios) {
@@ -54,12 +57,12 @@ serve(async (req) => {
       }
     }
 
-    // Validar volume
-    if (body.volume <= 0) {
+    // Validate series array
+    if (!Array.isArray(body.series) || body.series.length === 0) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Volume deve ser maior que zero",
+          error: "Series deve ser um array com pelo menos uma série",
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -68,12 +71,33 @@ serve(async (req) => {
       );
     }
 
-    // Validar quantidade de séries
-    if (body.quantidade_series <= 0) {
+    // Validate each serie
+    for (const serie of body.series) {
+      if (!serie.numero || !serie.valor_emissao || serie.valor_emissao <= 0) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "Cada série deve ter numero e valor_emissao maior que zero",
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400,
+          }
+        );
+      }
+    }
+
+    // Calculate total volume from series
+    const volumeTotal = body.series.reduce(
+      (sum: number, s: { valor_emissao: number }) => sum + s.valor_emissao,
+      0
+    );
+
+    if (volumeTotal <= 0) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Quantidade de séries deve ser maior que zero",
+          error: "Volume total deve ser maior que zero",
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -82,7 +106,7 @@ serve(async (req) => {
       );
     }
 
-    // Gerar número de emissão único
+    // Generate unique emission number
     const agora = new Date();
     const data = agora.toISOString().split("T")[0].replace(/-/g, "");
     const aleatorio = Math.floor(Math.random() * 10000)
@@ -90,7 +114,9 @@ serve(async (req) => {
       .padStart(4, "0");
     const numero_emissao = `EM-${data}-${aleatorio}`;
 
-    // Criar emissão
+    console.log("[fluxo-1-criar-emissao] Criando emissão:", numero_emissao);
+
+    // Create emission
     const { data: emissao, error: emissaoError } = await supabaseClient
       .from("emissoes")
       .insert({
@@ -98,41 +124,44 @@ serve(async (req) => {
         demandante_proposta: body.demandante_proposta,
         empresa_destinataria: body.empresa_destinataria,
         categoria: body.categoria,
-        volume: parseFloat(body.volume),
-        quantidade_series: parseInt(body.quantidade_series),
+        oferta: body.oferta,
+        veiculo: body.veiculo,
+        volume: volumeTotal,
+        quantidade_series: body.series.length,
         status_proposta: "rascunho",
-        comercial_id: body.comercial_id || null,
-        observacao: body.observacao || null,
       })
       .select()
       .single();
 
-    if (emissaoError) throw emissaoError;
-
-    // Criar dados da empresa se fornecidos
-    if (body.dados_empresa) {
-      const empresaData = {
-        id_emissao: emissao.id,
-        razao_social: body.dados_empresa.razao_social || null,
-        cnpj: body.dados_empresa.cnpj || null,
-        logradouro: body.dados_empresa.logradouro || null,
-        numero: body.dados_empresa.numero || null,
-        complemento: body.dados_empresa.complemento || null,
-        bairro: body.dados_empresa.bairro || null,
-        cidade: body.dados_empresa.cidade || null,
-        estado: body.dados_empresa.estado || null,
-        cep: body.dados_empresa.cep || null,
-      };
-
-      await supabaseClient.from("dados_empresa").insert(empresaData);
+    if (emissaoError) {
+      console.error("[fluxo-1-criar-emissao] Erro ao criar emissão:", emissaoError);
+      throw emissaoError;
     }
 
-    // Criar custos (inicialmente vazio)
+    console.log("[fluxo-1-criar-emissao] Emissão criada:", emissao.id);
+
+    // Save series
+    for (const serie of body.series) {
+      const { error: serieError } = await supabaseClient
+        .from("series")
+        .insert({
+          id_emissao: emissao.id,
+          numero: serie.numero,
+          valor_emissao: serie.valor_emissao,
+        });
+
+      if (serieError) {
+        console.error("[fluxo-1-criar-emissao] Erro ao salvar série:", serieError);
+        // Continue even if series insert fails
+      }
+    }
+
+    // Create empty costs record
     await supabaseClient.from("custos").insert({
       id_emissao: emissao.id,
     });
 
-    // Registrar no histórico
+    // Record in history
     await supabaseClient.from("historico_emissoes").insert({
       id_emissao: emissao.id,
       status_novo: "rascunho",
@@ -151,7 +180,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Erro:", error);
+    console.error("[fluxo-1-criar-emissao] Erro:", error);
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return new Response(
       JSON.stringify({
