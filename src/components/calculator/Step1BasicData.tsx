@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FileText } from 'lucide-react';
 import { useEffect } from 'react';
+import { CurrencyInput } from '@/components/ui/currency-input';
 
 interface Serie {
   numero: number;
@@ -134,9 +135,9 @@ export function Step1BasicData({ data, onChange }: Step1Props) {
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="publica">Oferta Pública</SelectItem>
-                <SelectItem value="privada">Oferta Privada</SelectItem>
-                <SelectItem value="restrita">Oferta Restrita (ICVM 476)</SelectItem>
+                <SelectItem value="privada_pura">Oferta Privada Pura</SelectItem>
+                <SelectItem value="privada_cetipada">Oferta Privada Cetipada</SelectItem>
+                <SelectItem value="cvm_160">Oferta CVM 160</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -187,11 +188,9 @@ export function Step1BasicData({ data, onChange }: Step1Props) {
                     <TableRow key={serie.numero}>
                       <TableCell className="font-medium">{serie.numero}</TableCell>
                       <TableCell>
-                        <Input
-                          type="number"
-                          placeholder="0,00"
-                          value={serie.volume || ''}
-                          onChange={(e) => handleSerieVolumeChange(serie.numero, Number(e.target.value))}
+                        <CurrencyInput
+                          value={serie.volume}
+                          onChange={(value) => handleSerieVolumeChange(serie.numero, value)}
                           className="max-w-xs"
                         />
                       </TableCell>

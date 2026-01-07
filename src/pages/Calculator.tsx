@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Save, FileDown } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/Header';
+import { NavigationTabs } from '@/components/NavigationTabs';
 import { StepIndicator } from '@/components/calculator/StepIndicator';
-import { Step1BasicData, type EmissaoData, type Serie } from '@/components/calculator/Step1BasicData';
-import { Step2CostsProviders, defaultProviders, type Provider } from '@/components/calculator/Step2CostsProviders';
+import { Step1BasicData, type EmissaoData } from '@/components/calculator/Step1BasicData';
+import { Step2CostsProviders, defaultCostsData, type CostsData } from '@/components/calculator/Step2CostsProviders';
 import { criarEmissao, salvarCustos } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 
@@ -30,9 +31,41 @@ export default function Calculator() {
     observacao: '',
   });
 
-  const [providers, setProviders] = useState<Provider[]>(defaultProviders);
+  const [costsData, setCostsData] = useState<CostsData>(defaultCostsData);
+
+  const validateStep1 = (): string[] => {
+    const errors: string[] = [];
+    if (!basicData.nome_operacao.trim()) errors.push('Nome da Operação');
+    if (!basicData.demandante_proposta.trim()) errors.push('Demandante da Proposta');
+    if (!basicData.empresa_destinataria.trim()) errors.push('Empresa Destinatária');
+    if (!basicData.categoria) errors.push('Categoria');
+    if (!basicData.tipo_oferta) errors.push('Tipo de Oferta');
+    if (!basicData.veiculo) errors.push('Veículo');
+    
+    const volumeTotal = basicData.series.reduce((sum, s) => sum + (s.volume || 0), 0);
+    if (volumeTotal <= 0) errors.push('Volume das Séries (deve ser maior que zero)');
+    
+    return errors;
+  };
+
+  const generateNumeroEmissao = (): string => {
+    const year = new Date().getFullYear();
+    const random = Math.floor(1000 + Math.random() * 9000);
+    return `EMIT-${year}-${random}`;
+  };
 
   const handleNext = () => {
+    if (currentStep === 1) {
+      const errors = validateStep1();
+      if (errors.length > 0) {
+        toast({
+          title: 'Campos obrigatórios',
+          description: `Preencha: ${errors.join(', ')}`,
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
     if (currentStep < 2) {
       setCurrentStep(currentStep + 1);
     }
@@ -56,9 +89,9 @@ export default function Calculator() {
         ? (basicData.categoria as 'DEB' | 'CRA' | 'CRI' | 'NC' | 'CR')
         : 'DEB';
 
-      // Create emission
+      // Create emission with auto-generated numero_emissao
       const emissaoPayload = {
-        numero_emissao: basicData.nome_operacao, // Using nome_operacao as numero
+        numero_emissao: generateNumeroEmissao(),
         demandante_proposta: basicData.demandante_proposta,
         empresa_destinataria: basicData.empresa_destinataria || undefined,
         categoria,
@@ -75,14 +108,12 @@ export default function Calculator() {
         throw new Error(result.error);
       }
 
-      // Save costs from selected providers
-      const allCosts = providers
-        .filter((p) => p.selecionado)
-        .map((p) => ({
-          tipo: `Taxa ${p.nome}`,
-          valor: p.precoAtual,
-          descricao: p.motivo || '',
-        }));
+      // Save costs from all sections
+      const allCosts = [
+        ...costsData.upfront.map((c) => ({ tipo: `Upfront - ${c.prestador}`, valor: c.valorBruto, descricao: `Gross Up: ${c.grossUp}%` })),
+        ...costsData.anual.map((c) => ({ tipo: `Anual - ${c.prestador}`, valor: c.valorBruto, descricao: `Gross Up: ${c.grossUp}%` })),
+        ...costsData.mensal.map((c) => ({ tipo: `Mensal - ${c.prestador}`, valor: c.valorBruto, descricao: `Gross Up: ${c.grossUp}%` })),
+      ].filter((c) => c.valor > 0);
 
       if (allCosts.length > 0 && result.data?.id) {
         await salvarCustos(result.data.id, allCosts);
@@ -108,8 +139,9 @@ export default function Calculator() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      <NavigationTabs />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <h2 className="text-2xl font-bold">
             {editId ? 'Editar Cotação' : 'Nova Cotação'}
@@ -127,9 +159,9 @@ export default function Calculator() {
           )}
           {currentStep === 2 && (
             <Step2CostsProviders 
-              providers={providers} 
+              costsData={costsData} 
               volume={volumeTotal}
-              onChange={setProviders} 
+              onChange={setCostsData} 
             />
           )}
         </div>
@@ -142,16 +174,10 @@ export default function Calculator() {
 
           <div className="flex items-center gap-3">
             {currentStep === 2 && (
-              <>
-                <Button variant="outline" disabled={isLoading}>
-                  <FileDown className="h-4 w-4 mr-2" />
-                  Gerar PDF
-                </Button>
-                <Button onClick={handleSave} disabled={isLoading}>
-                  <Save className="h-4 w-4 mr-2" />
-                  {isLoading ? 'Salvando...' : 'Salvar Cotação'}
-                </Button>
-              </>
+              <Button onClick={handleSave} disabled={isLoading}>
+                <Save className="h-4 w-4 mr-2" />
+                {isLoading ? 'Salvando...' : 'Salvar Cotação'}
+              </Button>
             )}
             {currentStep < 2 && (
               <Button onClick={handleNext}>
