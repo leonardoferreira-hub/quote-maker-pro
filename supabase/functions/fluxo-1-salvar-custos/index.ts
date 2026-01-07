@@ -5,11 +5,16 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Max-Age": "86400",
 };
 
 serve(async (req) => {
+  console.log(`[fluxo-1-salvar-custos] ${req.method} ${req.url}`);
+  console.log(`[fluxo-1-salvar-custos] Origin: ${req.headers.get('origin')}`);
+
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    console.log("[fluxo-1-salvar-custos] Preflight OPTIONS - returning 204");
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   try {
@@ -23,14 +28,15 @@ serve(async (req) => {
       }
     );
 
-    const url = new URL(req.url);
-    const pathParts = url.pathname.split("/");
-    const id_emissao = pathParts[pathParts.length - 1];
     const body = await req.json();
+    console.log("[fluxo-1-salvar-custos] Body recebido:", JSON.stringify(body));
 
-    if (!id_emissao || id_emissao === "fluxo-1-salvar-custos") {
+    // Aceita id_emissao do body (mais flexível)
+    const id_emissao = body.id_emissao;
+
+    if (!id_emissao) {
       return new Response(
-        JSON.stringify({ success: false, error: "ID de emissão não fornecido" }),
+        JSON.stringify({ success: false, error: "ID de emissão não fornecido no body" }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 400,
