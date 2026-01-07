@@ -1,13 +1,18 @@
 import { Check } from 'lucide-react';
 
+const stepLabels: Record<number, string[]> = {
+  2: ['Dados Básicos', 'Custos & Prestadores'],
+  3: ['Dados Básicos', 'Prestadores', 'Custos'],
+};
+
 interface StepIndicatorProps {
   currentStep: number;
   totalSteps: number;
 }
 
-const stepNames = ['Dados Básicos', 'Prestadores', 'Custos'];
-
 export function StepIndicator({ currentStep, totalSteps }: StepIndicatorProps) {
+  const labels = stepLabels[totalSteps] || stepLabels[2];
+
   return (
     <div className="flex items-center justify-center mb-8">
       {Array.from({ length: totalSteps }).map((_, index) => {
@@ -34,7 +39,7 @@ export function StepIndicator({ currentStep, totalSteps }: StepIndicatorProps) {
                   isCurrent ? 'text-primary' : 'text-muted-foreground'
                 }`}
               >
-                {stepNames[index]}
+                {labels[index]}
               </span>
             </div>
             {index < totalSteps - 1 && (
