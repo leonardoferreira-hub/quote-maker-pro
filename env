@@ -1,0 +1,7 @@
+# Supabase Access Token
+# Gere em: https://supabase.com/dashboard → Settings → Access Tokens
+SUPABASE_ACCESS_TOKEN=sbp_a1485f0f1f0048d021ddb34ea2ea7b07d78a884c
+
+# Supabase Project Reference
+# Encontre em: https://supabase.com/dashboard → Settings → General
+SUPABASE_PROJECT_REF=gthtvpujwukbfgokghne

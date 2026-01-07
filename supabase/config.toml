@@ -1,0 +1,4 @@
+# Supabase Configuration File
+# Leave empty - Supabase will use default values
+
+project_id = "gthtvpujwukbfgokghne"
