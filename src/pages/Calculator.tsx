@@ -4,38 +4,10 @@ import { ArrowLeft, ArrowRight, Save, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/Header';
 import { StepIndicator } from '@/components/calculator/StepIndicator';
-import { Step1BasicData } from '@/components/calculator/Step1BasicData';
-import { Step2Providers, defaultProviders } from '@/components/calculator/Step2Providers';
-import { Step3Costs } from '@/components/calculator/Step3Costs';
+import { Step1BasicData, type EmissaoData, type Serie } from '@/components/calculator/Step1BasicData';
+import { Step2CostsProviders, defaultProviders, type Provider } from '@/components/calculator/Step2CostsProviders';
 import { criarEmissao, salvarCustos } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-
-interface EmissaoData {
-  numero_emissao: string;
-  demandante_proposta: string;
-  empresa_destinataria: string;
-  categoria: string;
-  volume: string;
-  quantidade_series: string;
-  valor_mobiliario: string;
-  observacao: string;
-}
-
-interface Provider {
-  id: string;
-  nome: string;
-  precoDefault: number;
-  precoAtual: number;
-  selecionado: boolean;
-  motivo: string;
-}
-
-interface Cost {
-  id: string;
-  tipo: string;
-  valor: number;
-  descricao: string;
-}
 
 export default function Calculator() {
   const navigate = useNavigate();
@@ -47,23 +19,21 @@ export default function Calculator() {
   const [isLoading, setIsLoading] = useState(false);
 
   const [basicData, setBasicData] = useState<EmissaoData>({
-    numero_emissao: '',
+    nome_operacao: '',
     demandante_proposta: '',
     empresa_destinataria: '',
     categoria: '',
-    volume: '',
+    tipo_oferta: '',
+    veiculo: '',
     quantidade_series: '1',
-    valor_mobiliario: '',
+    series: [{ numero: 1, volume: 0 }],
     observacao: '',
   });
 
   const [providers, setProviders] = useState<Provider[]>(defaultProviders);
-  const [costs, setCosts] = useState<Cost[]>([
-    { id: 'cost-1', tipo: 'Taxa de Estruturação', valor: 50000, descricao: '' },
-  ]);
 
   const handleNext = () => {
-    if (currentStep < 3) {
+    if (currentStep < 2) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -76,6 +46,8 @@ export default function Calculator() {
     }
   };
 
+  const volumeTotal = basicData.series.reduce((sum, s) => sum + (s.volume || 0), 0);
+
   const handleSave = async () => {
     setIsLoading(true);
     try {
@@ -86,13 +58,13 @@ export default function Calculator() {
 
       // Create emission
       const emissaoPayload = {
-        numero_emissao: basicData.numero_emissao,
+        numero_emissao: basicData.nome_operacao, // Using nome_operacao as numero
         demandante_proposta: basicData.demandante_proposta,
         empresa_destinataria: basicData.empresa_destinataria || undefined,
         categoria,
-        volume: Number(basicData.volume),
+        volume: volumeTotal,
         quantidade_series: Number(basicData.quantidade_series) || 1,
-        valor_mobiliario: basicData.valor_mobiliario ? Number(basicData.valor_mobiliario) : undefined,
+        valor_mobiliario: volumeTotal || undefined,
         status_proposta: 'rascunho',
         observacao: basicData.observacao || undefined,
       };
@@ -103,17 +75,14 @@ export default function Calculator() {
         throw new Error(result.error);
       }
 
-      // Save costs including provider costs
-      const allCosts = [
-        ...costs.map((c) => ({ tipo: c.tipo, valor: c.valor, descricao: c.descricao })),
-        ...providers
-          .filter((p) => p.selecionado)
-          .map((p) => ({
-            tipo: `Taxa ${p.nome}`,
-            valor: p.precoAtual,
-            descricao: p.motivo || '',
-          })),
-      ];
+      // Save costs from selected providers
+      const allCosts = providers
+        .filter((p) => p.selecionado)
+        .map((p) => ({
+          tipo: `Taxa ${p.nome}`,
+          valor: p.precoAtual,
+          descricao: p.motivo || '',
+        }));
 
       if (allCosts.length > 0 && result.data?.id) {
         await salvarCustos(result.data.id, allCosts);
@@ -121,7 +90,7 @@ export default function Calculator() {
 
       toast({
         title: 'Cotação salva!',
-        description: `Emissão ${basicData.numero_emissao} criada com sucesso.`,
+        description: `Emissão ${basicData.nome_operacao} criada com sucesso.`,
       });
 
       navigate('/');
@@ -135,8 +104,6 @@ export default function Calculator() {
       setIsLoading(false);
     }
   };
-
-  const volume = Number(basicData.volume) || 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -152,17 +119,18 @@ export default function Calculator() {
           </p>
         </div>
 
-        <StepIndicator currentStep={currentStep} totalSteps={3} />
+        <StepIndicator currentStep={currentStep} totalSteps={2} />
 
         <div className="animate-fade-in">
           {currentStep === 1 && (
             <Step1BasicData data={basicData} onChange={setBasicData} />
           )}
           {currentStep === 2 && (
-            <Step2Providers providers={providers} onChange={setProviders} />
-          )}
-          {currentStep === 3 && (
-            <Step3Costs costs={costs} volume={volume} onChange={setCosts} />
+            <Step2CostsProviders 
+              providers={providers} 
+              volume={volumeTotal}
+              onChange={setProviders} 
+            />
           )}
         </div>
 
@@ -173,7 +141,7 @@ export default function Calculator() {
           </Button>
 
           <div className="flex items-center gap-3">
-            {currentStep === 3 && (
+            {currentStep === 2 && (
               <>
                 <Button variant="outline" disabled={isLoading}>
                   <FileDown className="h-4 w-4 mr-2" />
@@ -185,7 +153,7 @@ export default function Calculator() {
                 </Button>
               </>
             )}
-            {currentStep < 3 && (
+            {currentStep < 2 && (
               <Button onClick={handleNext}>
                 Próximo
                 <ArrowRight className="h-4 w-4 ml-2" />
