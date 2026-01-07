@@ -1,7 +1,6 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FileText } from 'lucide-react';
@@ -10,19 +9,17 @@ import { CurrencyInput } from '@/components/ui/currency-input';
 
 interface Serie {
   numero: number;
-  volume: number;
+  valor_emissao: number;
 }
 
 interface EmissaoData {
-  nome_operacao: string;
   demandante_proposta: string;
   empresa_destinataria: string;
   categoria: string;
-  tipo_oferta: string;
+  oferta: string;
   veiculo: string;
   quantidade_series: string;
   series: Serie[];
-  observacao: string;
 }
 
 interface Step1Props {
@@ -46,21 +43,21 @@ export function Step1BasicData({ data, onChange }: Step1Props) {
         const existing = currentSeries.find(s => s.numero === i);
         newSeries.push({
           numero: i,
-          volume: existing?.volume || 0
+          valor_emissao: existing?.valor_emissao || 0
         });
       }
       onChange({ ...data, series: newSeries });
     }
   }, [data.quantidade_series]);
 
-  const handleSerieVolumeChange = (numero: number, volume: number) => {
+  const handleSerieVolumeChange = (numero: number, valor_emissao: number) => {
     const updatedSeries = data.series.map(s =>
-      s.numero === numero ? { ...s, volume } : s
+      s.numero === numero ? { ...s, valor_emissao } : s
     );
     handleChange('series', updatedSeries);
   };
 
-  const volumeTotal = data.series.reduce((sum, s) => sum + (s.volume || 0), 0);
+  const volumeTotal = data.series.reduce((sum, s) => sum + (s.valor_emissao || 0), 0);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -80,17 +77,6 @@ export function Step1BasicData({ data, onChange }: Step1Props) {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Nome da Operação */}
-        <div className="space-y-2">
-          <Label htmlFor="nome_operacao">Nome da Operação *</Label>
-          <Input
-            id="nome_operacao"
-            placeholder="Ex: Operação XYZ"
-            value={data.nome_operacao}
-            onChange={(e) => handleChange('nome_operacao', e.target.value)}
-          />
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="demandante">Demandante da Proposta *</Label>
@@ -129,15 +115,15 @@ export function Step1BasicData({ data, onChange }: Step1Props) {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="tipo_oferta">Tipo de Oferta *</Label>
-            <Select value={data.tipo_oferta} onValueChange={(value) => handleChange('tipo_oferta', value)}>
+            <Label htmlFor="oferta">Tipo de Oferta *</Label>
+            <Select value={data.oferta} onValueChange={(value) => handleChange('oferta', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="privada_pura">Oferta Privada Pura</SelectItem>
-                <SelectItem value="privada_cetipada">Oferta Privada Cetipada</SelectItem>
-                <SelectItem value="cvm_160">Oferta CVM 160</SelectItem>
+                <SelectItem value="Oferta Privada Pura">Oferta Privada Pura</SelectItem>
+                <SelectItem value="Oferta Privada Cetipada">Oferta Privada Cetipada</SelectItem>
+                <SelectItem value="Oferta CVM 160">Oferta CVM 160</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -151,8 +137,8 @@ export function Step1BasicData({ data, onChange }: Step1Props) {
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="veiculo_exclusivo">Veículo Exclusivo</SelectItem>
-                <SelectItem value="patrimonio_separado">Patrimônio Separado</SelectItem>
+                <SelectItem value="Veículo Exclusivo">Veículo Exclusivo</SelectItem>
+                <SelectItem value="Patrimônio Separado">Patrimônio Separado</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -172,13 +158,13 @@ export function Step1BasicData({ data, onChange }: Step1Props) {
         {/* Dynamic Series Table */}
         {data.series.length > 0 && (
           <div className="space-y-3">
-            <Label>Séries e Volumes</Label>
+            <Label>Séries e Valores de Emissão</Label>
             <div className="rounded-lg border border-border overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead className="w-24">Série</TableHead>
-                    <TableHead>Volume da Série (R$)</TableHead>
+                    <TableHead>Valor de Emissão (R$)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -187,7 +173,7 @@ export function Step1BasicData({ data, onChange }: Step1Props) {
                       <TableCell className="font-medium">{serie.numero}</TableCell>
                       <TableCell>
                         <CurrencyInput
-                          value={serie.volume}
+                          value={serie.valor_emissao}
                           onChange={(value) => handleSerieVolumeChange(serie.numero, value)}
                           className="max-w-xs"
                         />
@@ -207,17 +193,6 @@ export function Step1BasicData({ data, onChange }: Step1Props) {
             </div>
           </div>
         )}
-
-        <div className="space-y-2">
-          <Label htmlFor="observacao">Observações</Label>
-          <Textarea
-            id="observacao"
-            placeholder="Observações adicionais sobre a emissão..."
-            value={data.observacao}
-            onChange={(e) => handleChange('observacao', e.target.value)}
-            rows={3}
-          />
-        </div>
       </CardContent>
     </Card>
   );

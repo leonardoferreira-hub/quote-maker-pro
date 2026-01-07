@@ -4,14 +4,15 @@ export interface Emissao {
   id: string;
   numero_emissao: string;
   demandante_proposta: string;
-  empresa_destinataria?: string;
+  empresa_destinataria: string;
   categoria: 'DEB' | 'CRA' | 'CRI' | 'NC' | 'CR';
+  oferta: string;
+  veiculo: string;
   volume: number;
-  quantidade_series?: number;
-  valor_mobiliario?: number;
+  quantidade_series: number;
   status_proposta: string;
   data_criacao: string;
-  observacao?: string;
+  series?: { numero: number; valor_emissao: number }[];
 }
 
 export interface Custo {
