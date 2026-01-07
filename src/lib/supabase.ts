@@ -100,3 +100,56 @@ export async function finalizarProposta(id: string, status: string, data_envio?:
   );
   return response.json();
 }
+
+// ============= FLUXO CUSTOS - NOVA FUNÇÃO =============
+
+export interface FetchCustosParams {
+  categoria: string;
+  tipo_oferta: string;
+  veiculo?: string;
+  lastro?: string;
+  volume: number;
+  series: { numero: number; valor_emissao: number }[];
+}
+
+export async function fetchCustosPorCombinacao(params: FetchCustosParams) {
+  try {
+    console.log('📊 Buscando custos para:', params);
+    
+    const response = await fetch(
+      `${SUPABASE_URL}/fluxo_custos_por_combinacao`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          categoria: params.categoria,
+          tipo_oferta: params.tipo_oferta,
+          veiculo: params.veiculo || null,
+          lastro: params.lastro || null,
+          volume: params.volume,
+          series: params.series
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Erro na resposta:', errorText);
+      throw new Error(`Erro HTTP: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ Resposta da API:', data);
+    
+    return data;
+  } catch (error) {
+    console.error('❌ Erro ao buscar custos:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao buscar custos',
+      data: { upfront: [], anual: [], mensal: [] },
+      custodia_debenture: [],
+      totais: { total_upfront: 0, total_anual: 0, total_mensal: 0, total_primeiro_ano: 0 }
+    };
+  }
+}
